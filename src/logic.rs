@@ -1,5 +1,5 @@
-use r2d2_sqlite::rusqlite::{params, Connection, Result, Error};
-use serde::{Serialize, Deserialize};
+use r2d2_sqlite::rusqlite::{params, Connection, Error, Result};
+use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -43,15 +43,15 @@ pub fn setup_db(conn: &Connection) -> Result<()> {
 }
 
 /// Procesa un pedido completo dentro de una transacción síncrona (ejecutada vía spawn_blocking)
-#[instrument(skip(conn))] 
+#[instrument(skip(conn))]
 pub fn procesar_pedido_completo(
-    conn: &mut Connection, 
+    conn: &mut Connection,
     nombre_cliente: &str,
     direccion: &str,
     carrito: Vec<(i32, i32)>, // Vec<(id_producto, cantidad)>
 ) -> Result<OrderUpdate> {
     let start = std::time::Instant::now();
-    
+
     // Iniciamos la transacción: Todo o nada
     let tx = conn.transaction()?;
 
@@ -75,7 +75,7 @@ pub fn procesar_pedido_completo(
 
         if stock_actual < cant {
             // Error de stock: rusqlite hará rollback automáticamente al soltar 'tx'
-            return Err(Error::StatementChangedRows(0)); 
+            return Err(Error::StatementChangedRows(0));
         }
 
         let subtotal = precio * (cant as f64);
@@ -96,15 +96,15 @@ pub fn procesar_pedido_completo(
 
     // 3. Actualizar el total final en la orden
     tx.execute(
-        "UPDATE orders SET total = ? WHERE id = ?", 
-        params![total_acumulado, order_id]
+        "UPDATE orders SET total = ? WHERE id = ?",
+        params![total_acumulado, order_id],
     )?;
 
     // Confirmar cambios en disco
     tx.commit()?;
 
     info!(
-        order_id = order_id, 
+        order_id = order_id,
         duration_ms = start.elapsed().as_millis(),
         "✅ Transacción DB exitosa"
     );

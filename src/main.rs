@@ -1,15 +1,18 @@
 use axum::{
-    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        State,
+    },
     response::{Html, IntoResponse},
     routing::get,
     Router,
 };
 use futures_util::{sink::SinkExt, stream::StreamExt};
+use r2d2_sqlite::SqliteConnectionManager;
 use std::sync::Arc;
 use tokio::sync::{broadcast, Semaphore};
-use r2d2_sqlite::SqliteConnectionManager;
 
-mod logic;  
+mod logic;
 
 pub type DbPool = r2d2::Pool<SqliteConnectionManager>;
 
@@ -71,34 +74,38 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     while let Ok(update) = rx.recv().await {
         if let Ok(msg) = serde_json::to_string(&update) {
-            if sender.send(Message::Text(msg)).await.is_err() { break; }
+            if sender.send(Message::Text(msg)).await.is_err() {
+                break;
+            }
         }
     }
 }
 
 async fn simular_pedido_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let state_c = Arc::clone(&state);
-    
+
     tokio::spawn(async move {
         // Clonar el Arc del semáforo para entregárselo a acquire_owned
         let _permit = state_c.db_semaphore.clone().acquire_owned().await.unwrap();
-        
+
         // Clonar el estado para el hilo de bloqueo
-        let state_for_db = state_c.clone(); 
-        
+        let state_for_db = state_c.clone();
+
         let update = tokio::task::spawn_blocking(move || {
             let mut conn = state_for_db.db_pool.get().unwrap();
-            
+
             // Llamada real a la lógica
             logic::procesar_pedido_completo(
-                &mut conn, 
-                "Santiago Urdaneta", 
-                "Calle 123", 
-                vec![(1, 1)]
-            ).expect("Error en DB")
-        }).await.unwrap();
+                &mut conn,
+                "Santiago Urdaneta",
+                "Calle 123",
+                vec![(1, 1)],
+            )
+            .expect("Error en DB")
+        })
+        .await
+        .unwrap();
 
-        
         let _ = state_c.tx.send(update);
     });
 
