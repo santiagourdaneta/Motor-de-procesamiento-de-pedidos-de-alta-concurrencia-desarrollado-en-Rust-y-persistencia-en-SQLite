@@ -38,23 +38,78 @@
              const data = JSON.parse(event.data);
              const card = document.createElement('div');
              card.className = 'order-card';
-             
-             const itemsHtml = data.items.map(i => `<li>${i}</li>`).join('');
 
-             card.innerHTML = `
-                 <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333">
-                     <span>ORDER #${data.order_id}</span>
-                     <span style="color:#ffb400">NUEVO</span>
-                 </div>
-                 <p><strong>CLIENTE:</strong> ${data.cliente}</p>
-                 <p><strong>TEL:</strong> <a href="https://wa.me/${data.telefono}" style="color:#00ff41">${data.telefono}</a></p>
-                 <p><strong>ENTREGA EN:</strong> <span style="color:#fff">${data.direccion}</span></p>
-                 <hr style="border:1px dashed #333">
-                 <ul>${itemsHtml}</ul>
-                 <div style="text-align:right; font-size:1.2em">
-                     <strong>TOTAL: $${data.total.toFixed(2)}</strong>
-                 </div>
-             `;
+             const header = document.createElement('div');
+             header.style.display = 'flex';
+             header.style.justifyContent = 'space-between';
+             header.style.borderBottom = '1px solid #333';
+
+             const orderSpan = document.createElement('span');
+             orderSpan.textContent = `ORDER #${data.order_id}`;
+
+             const newSpan = document.createElement('span');
+             newSpan.style.color = '#ffb400';
+             newSpan.textContent = 'NUEVO';
+
+             header.appendChild(orderSpan);
+             header.appendChild(newSpan);
+
+             const clienteP = document.createElement('p');
+             const clienteStrong = document.createElement('strong');
+             clienteStrong.textContent = 'CLIENTE:';
+             clienteP.appendChild(clienteStrong);
+             clienteP.appendChild(document.createTextNode(` ${data.cliente}`));
+
+             const telP = document.createElement('p');
+             const telStrong = document.createElement('strong');
+             telStrong.textContent = 'TEL:';
+             const telLink = document.createElement('a');
+             const telefono = String(data.telefono ?? '');
+             const telefonoDigits = telefono.replace(/\D/g, '');
+             telLink.href = `https://wa.me/${telefonoDigits}`;
+             telLink.style.color = '#00ff41';
+             telLink.textContent = telefono;
+             telP.appendChild(telStrong);
+             telP.appendChild(document.createTextNode(' '));
+             telP.appendChild(telLink);
+
+             const direccionP = document.createElement('p');
+             const direccionStrong = document.createElement('strong');
+             direccionStrong.textContent = 'ENTREGA EN:';
+             const direccionSpan = document.createElement('span');
+             direccionSpan.style.color = '#fff';
+             direccionSpan.textContent = String(data.direccion ?? '');
+             direccionP.appendChild(direccionStrong);
+             direccionP.appendChild(document.createTextNode(' '));
+             direccionP.appendChild(direccionSpan);
+
+             const hr = document.createElement('hr');
+             hr.style.border = '1px dashed #333';
+
+             const ul = document.createElement('ul');
+             const items = Array.isArray(data.items) ? data.items : [];
+             items.forEach(i => {
+                 const li = document.createElement('li');
+                 li.textContent = String(i);
+                 ul.appendChild(li);
+             });
+
+             const totalDiv = document.createElement('div');
+             totalDiv.style.textAlign = 'right';
+             totalDiv.style.fontSize = '1.2em';
+             const totalStrong = document.createElement('strong');
+             const totalNumber = Number(data.total);
+             totalStrong.textContent = `TOTAL: $${Number.isFinite(totalNumber) ? totalNumber.toFixed(2) : '0.00'}`;
+             totalDiv.appendChild(totalStrong);
+
+             card.appendChild(header);
+             card.appendChild(clienteP);
+             card.appendChild(telP);
+             card.appendChild(direccionP);
+             card.appendChild(hr);
+             card.appendChild(ul);
+             card.appendChild(totalDiv);
+
              container.prepend(card);
          } catch(e) { /* ... */ }
      };
