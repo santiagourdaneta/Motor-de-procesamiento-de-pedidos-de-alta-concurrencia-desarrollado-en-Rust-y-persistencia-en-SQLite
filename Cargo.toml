@@ -1,0 +1,22 @@
+[package]
+name = "sistema-pedidos-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Server & Async
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["fs"] }
+
+# Database (r2d2 para pool síncrono sobre hardware legacy)
+rusqlite = { version = "0.31", features = ["bundled"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
+
+# Utilities
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+futures-util = "0.3"
+tracing = "0.1"
+tracing-subscriber = "0.3"

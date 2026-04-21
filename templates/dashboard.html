@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SISTEMA DE PEDIDOS | MONITOR</title>
+    <style>
+        body { background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; margin: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { border: 1px solid #333; padding: 15px; background: #0d0d0d; box-shadow: 0 0 15px rgba(0,255,65,0.05); }
+        .order-card { border-left: 3px solid #00ff41; padding: 10px; margin-bottom: 10px; background: #141414; animation: flicker 0.2s; }
+        h2 { border-bottom: 1px solid #333; padding-bottom: 5px; color: #fff; text-transform: uppercase; letter-spacing: 2px; }
+        @keyframes flicker { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <h2>SISTEMA DE PEDIDOS</h2>
+    <div class="grid">
+        <div class="panel">
+            <h3>PEDIDOS ENTRANTES</h3>
+            <div id="orders-container">
+                </div>
+        </div>
+        <div class="panel">
+            <h3>STATUS</h3>
+            <p> SOCKET: <span id="status">OFFLINE</span></p>
+            <p> DB: ONLINE (negocio.db)</p>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('orders-container');
+        const status = document.getElementById('status');
+        const socket = new WebSocket('ws://' + window.location.host + '/ws');
+
+        socket.onopen = () => { status.innerText = 'CONNECTED'; status.style.color = '#00ff41'; };
+     socket.onmessage = (event) => {
+         try {
+             const data = JSON.parse(event.data);
+             const card = document.createElement('div');
+             card.className = 'order-card';
+             
+             const itemsHtml = data.items.map(i => `<li>${i}</li>`).join('');
+
+             card.innerHTML = `
+                 <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333">
+                     <span>ORDER #${data.order_id}</span>
+                     <span style="color:#ffb400">NUEVO</span>
+                 </div>
+                 <p><strong>CLIENTE:</strong> ${data.cliente}</p>
+                 <p><strong>TEL:</strong> <a href="https://wa.me/${data.telefono}" style="color:#00ff41">${data.telefono}</a></p>
+                 <p><strong>ENTREGA EN:</strong> <span style="color:#fff">${data.direccion}</span></p>
+                 <hr style="border:1px dashed #333">
+                 <ul>${itemsHtml}</ul>
+                 <div style="text-align:right; font-size:1.2em">
+                     <strong>TOTAL: $${data.total.toFixed(2)}</strong>
+                 </div>
+             `;
+             container.prepend(card);
+         } catch(e) { /* ... */ }
+     };
+        socket.onclose = () => { status.innerText = 'DISCONNECTED'; status.style.color = '#ff0000'; };
+    </script>
+</body>
+</html>
