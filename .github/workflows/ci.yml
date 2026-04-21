@@ -1,0 +1,37 @@
+name: Nexus-Zero CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      sqlite:
+        image: keinos/sqlite3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Build and Test Backend
+        run: cargo test --lib
+
+      - name: Run E2E Tests
+        run: |
+          # Compilar el servidor
+          cargo build --release
+          # Ejecutar el servidor en segundo plano
+          ./target/release/sistema-pedidos-rust &
+          # Esperar a que el servidor suba
+          sleep 5
+          # Ejecutar Playwright
+          npx playwright test --project=chromium
